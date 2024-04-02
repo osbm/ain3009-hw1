@@ -88,12 +88,7 @@ def read_data_db():
     return data
 
 def merge_data(data1, data2):
-    # merge the two dataframes
-    # print(type(data1))
-    # print(data2)
-
     data = pd.concat([data1, data2])
-    # print(data)
     return data.reset_index(drop=True).to_json()
 
 def print_data(data):
@@ -153,18 +148,11 @@ def save_data_db(data):
     return None
 
 
-
-
 with DAG(
     dag_id="ain3009-hw",
     start_date=datetime.datetime(2024, 1, 1),
     schedule="@daily",
 ):
-    # Define the tasks
-    # read data.csv file
-    # read a table from the database
-    # Aggregate the data to calculate the total `quantity` and total `sale_amount` for each `product_id`.
-    #  Load the aggregated data into a table in the data warehouse (a simple MySQL table will be sufficient). The table should have columns for `product_id`, `total_quantity`, and `total_sale_amount`.
 
     read_data_csv_task = PythonOperator(
         task_id="read_data_csv",
@@ -175,13 +163,11 @@ with DAG(
         python_callable=feed_sample_data_to_db,
     )
 
-    # read a table from the database
     read_data_db_task = PythonOperator(
         task_id="read_data_db",
         python_callable=read_data_db,
     )
 
-    # merge the two dataframes
     merge_data_task = PythonOperator(
         task_id="merge_data",
         python_callable=merge_data,
@@ -195,9 +181,6 @@ with DAG(
         op_args=[merge_data_task.output],
     )
 
-
-
-    # # Aggregate the data to calculate the total `quantity` and total `sale_amount` for each `product_id`.
     aggregate_data_task = PythonOperator(
         task_id="aggregate_data",
         python_callable=aggregate_data,
@@ -210,22 +193,14 @@ with DAG(
         op_args=[aggregate_data_task.output],
     )
 
-
-    # # Load the aggregated data into a table in the data warehouse (a simple MySQL table will be sufficient). The table should have columns for `product_id`, `total_quantity`, and `total_sale_amount`.
     save_data_db = PythonOperator(
         task_id="save_data_db",
         python_callable=save_data_db,
         op_args=[aggregate_data_task.output],
     )
     place_data_db_task >> read_data_db_task
-    # Define the order of the tasks
     [read_data_csv_task, read_data_db_task] >> merge_data_task
     merge_data_task >> remove_nan_rows_task
     remove_nan_rows_task >> aggregate_data_task
-
     aggregate_data_task >> print_data_task
-
     aggregate_data_task >> save_data_db
-
-    # merge_data >> aggregate_data
-    # aggregate_data >> save_data_db
